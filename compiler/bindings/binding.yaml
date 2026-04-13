@@ -1,0 +1,38 @@
+# Action binding configuration
+# Maps DSL actions to backend operations
+#
+# Format:
+# <actor>.<action>:
+#   backend: <backend_operation>
+#   inputs: [<param1>, <param2>]
+#   outputs: [<metric1>, <metric2>]
+
+laptop.scan_ssid:
+  backend: wifi.scan
+  inputs: []
+  outputs: [signal_strength, ssid, channel]
+
+laptop.authenticate:
+  backend: aaa.authenticate
+  inputs: [username, password]
+  outputs: [auth_status, auth_latency_ms]
+
+worker.login:
+  backend: aaa.login
+  inputs: [credential]
+  outputs: [session_token, user_id]
+
+worker.generate_traffic:
+  backend: traffic.generate
+  inputs: [duration, volume]
+  outputs: [bytes_transferred, packet_count]
+
+router.configure:
+  backend: network.configure
+  inputs: [config]
+  outputs: [config_status, change_id]
+
+access_point.deploy:
+  backend: network.deploy_ap
+  inputs: [ssid, security]
+  outputs: [ap_id, radios]

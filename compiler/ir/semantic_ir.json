@@ -1,0 +1,118 @@
+{
+  "type": "SemanticScenario",
+  "name": "enterprise_wifi_session",
+  "actors": [
+    {
+      "type": "SemanticActor",
+      "name": "worker",
+      "actor_type": "employee",
+      "location": {
+        "line": 0,
+        "column": 0,
+        "file": "<scenario>"
+      }
+    },
+    {
+      "type": "SemanticActor",
+      "name": "laptop",
+      "actor_type": "managed_laptop",
+      "location": {
+        "line": 0,
+        "column": 0,
+        "file": "<scenario>"
+      }
+    }
+  ],
+  "phases": [
+    {
+      "type": "SemanticPhase",
+      "name": "",
+      "mode": "serial",
+      "children": [
+        {
+          "type": "SemanticPhase",
+          "name": "",
+          "mode": "parallel",
+          "children": [
+            {
+              "type": "SemanticAction",
+              "actor": "laptop",
+              "name": "scan_ssid",
+              "constraints": [
+                {
+                  "type": "SemanticConstraint",
+                  "metric": "signal_strength",
+                  "anchor": "end",
+                  "value": {
+                    "type": "range",
+                    "start": -67,
+                    "end": -55
+                  },
+                  "location": {
+                    "line": 0,
+                    "column": 0,
+                    "file": "<scenario>"
+                  }
+                }
+              ],
+              "location": {
+                "line": 0,
+                "column": 0,
+                "file": "<scenario>"
+              }
+            },
+            {
+              "type": "SemanticAction",
+              "actor": "laptop",
+              "name": "authenticate",
+              "constraints": [
+                {
+                  "type": "SemanticConstraint",
+                  "metric": "auth_status",
+                  "anchor": "end",
+                  "value": "success",
+                  "location": {
+                    "line": 1,
+                    "column": 0,
+                    "file": "<scenario>"
+                  }
+                },
+                {
+                  "type": "SemanticConstraint",
+                  "metric": "auth_latency_ms",
+                  "anchor": "end",
+                  "value": {
+                    "type": "range",
+                    "start": 200,
+                    "end": 1500
+                  },
+                  "location": {
+                    "line": 2,
+                    "column": 0,
+                    "file": "<scenario>"
+                  }
+                }
+              ],
+              "location": {
+                "line": 1,
+                "column": 0,
+                "file": "<scenario>"
+              }
+            }
+          ],
+          "location": {
+            "line": 0,
+            "column": 0,
+            "file": "<scenario>"
+          }
+        }
+      ],
+      "location": {
+        "line": 0,
+        "column": 0,
+        "file": "<scenario>"
+      }
+    }
+  ],
+  "coverages": []
+}

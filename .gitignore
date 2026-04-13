@@ -1,0 +1,14 @@
+# IDE and editor
+.claude/
+.vscode/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# Distribution
+dist/
+build/
+*.egg-info/

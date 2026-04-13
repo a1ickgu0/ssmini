@@ -1,0 +1,36 @@
+{
+  "scenario_name": "enterprise_wifi_session",
+  "start_time": 1775956182222.38,
+  "end_time": 1775956182222.6272,
+  "total_duration_ms": 0.247314453125,
+  "steps": [
+    {
+      "step_id": "step_0001",
+      "operation": "wifi.scan",
+      "inputs": {},
+      "outputs": {
+        "ssid": "Enterprise-Network",
+        "bssid": "8c:7d:72",
+        "channel": 6,
+        "signal_strength": -37,
+        "security": "WPA2-PSK",
+        "frequency": "5.0"
+      },
+      "status": "completed",
+      "duration_ms": 0.034809112548828125,
+      "timestamp": 1775956182222.4473
+    },
+    {
+      "step_id": "step_0002",
+      "operation": "aaa.authenticate",
+      "inputs": {
+        "username": "username",
+        "password": "password"
+      },
+      "outputs": {},
+      "status": "failed",
+      "duration_ms": 0.15163421630859375,
+      "timestamp": 1775956182222.6218
+    }
+  ]
+}

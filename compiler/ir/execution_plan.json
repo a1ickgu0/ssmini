@@ -1,0 +1,72 @@
+{
+  "scenario_name": "enterprise_wifi_session",
+  "phases": [
+    {
+      "name": "",
+      "mode": "serial",
+      "tasks": [
+        {
+          "name": "wifi.scan",
+          "inputs": {},
+          "outputs": [
+            "signal_strength",
+            "ssid",
+            "channel"
+          ],
+          "actor": "laptop"
+        },
+        {
+          "name": "aaa.authenticate",
+          "inputs": {
+            "username": "$username",
+            "password": "$password"
+          },
+          "outputs": [
+            "auth_status",
+            "auth_latency_ms"
+          ],
+          "actor": "laptop"
+        }
+      ]
+    }
+  ],
+  "acceptance_rules": [
+    {
+      "metric": "signal_strength",
+      "constraint": {
+        "anchor": "end",
+        "value": {
+          "type": "range",
+          "start": -67,
+          "end": -55
+        }
+      },
+      "description": "Constraint on signal_strength at end"
+    },
+    {
+      "metric": "auth_status",
+      "constraint": {
+        "anchor": "end",
+        "value": "success"
+      },
+      "description": "Constraint on auth_status at end"
+    },
+    {
+      "metric": "auth_latency_ms",
+      "constraint": {
+        "anchor": "end",
+        "value": {
+          "type": "range",
+          "start": 200,
+          "end": 1500
+        }
+      },
+      "description": "Constraint on auth_latency_ms at end"
+    }
+  ],
+  "coverage_specs": {},
+  "actors": [
+    "worker",
+    "laptop"
+  ]
+}

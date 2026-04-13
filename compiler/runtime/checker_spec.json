@@ -1,0 +1,46 @@
+{
+  "scenario_name": "enterprise_wifi_session",
+  "constraints": [
+    {
+      "metric": "signal_strength",
+      "constraint_type": "range",
+      "operator": "in",
+      "value": {
+        "start": -67,
+        "end": -55,
+        "inclusive": true
+      },
+      "anchor": "end",
+      "required": true
+    },
+    {
+      "metric": "auth_status",
+      "constraint_type": "equality",
+      "operator": "==",
+      "value": "success",
+      "anchor": "end",
+      "required": true
+    },
+    {
+      "metric": "auth_latency_ms",
+      "constraint_type": "range",
+      "operator": "in",
+      "value": {
+        "start": 200,
+        "end": 1500,
+        "inclusive": true
+      },
+      "anchor": "end",
+      "required": true
+    }
+  ],
+  "accept_on": "all",
+  "coverage": {
+    "metrics_present": [
+      "auth_latency_ms",
+      "auth_status",
+      "signal_strength"
+    ],
+    "metrics_missing": []
+  }
+}

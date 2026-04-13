@@ -1,0 +1,31 @@
+{
+  "scenario": "enterprise_wifi_session",
+  "constraints": [
+    {
+      "metric": "signal_strength",
+      "operator": "in",
+      "value": {
+        "type": "range",
+        "start": -67,
+        "end": -55
+      },
+      "anchor": "end"
+    },
+    {
+      "metric": "auth_status",
+      "operator": "==",
+      "value": "success",
+      "anchor": "end"
+    },
+    {
+      "metric": "auth_latency_ms",
+      "operator": "in",
+      "value": {
+        "type": "range",
+        "start": 200,
+        "end": 1500
+      },
+      "anchor": "end"
+    }
+  ]
+}

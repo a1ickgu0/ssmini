@@ -1,0 +1,94 @@
+{
+  "scenario_name": "enterprise_wifi_session",
+  "status": "fail",
+  "all_passed": false,
+  "constraints": [
+    {
+      "metric": "signal_strength",
+      "operator": "in",
+      "value": {
+        "type": "range",
+        "start": -67,
+        "end": -55
+      },
+      "anchor": "end"
+    },
+    {
+      "metric": "auth_status",
+      "operator": "==",
+      "value": "success",
+      "anchor": "end"
+    },
+    {
+      "metric": "auth_latency_ms",
+      "operator": "in",
+      "value": {
+        "type": "range",
+        "start": 200,
+        "end": 1500
+      },
+      "anchor": "end"
+    }
+  ],
+  "violations": [
+    {
+      "metric": "signal_strength",
+      "expected": "{'type': 'range', 'start': -67, 'end': -55}",
+      "actual": "-76",
+      "severity": "error",
+      "description": "Constraint failed: Range check: -67 <= -76 <= -55"
+    },
+    {
+      "metric": "auth_status",
+      "expected": "success",
+      "actual": "None",
+      "severity": "error",
+      "description": "Constraint failed: Missing required metric: auth_status"
+    },
+    {
+      "metric": "auth_latency_ms",
+      "expected": "{'type': 'range', 'start': 200, 'end': 1500}",
+      "actual": "None",
+      "severity": "error",
+      "description": "Constraint failed: Missing required metric: auth_latency_ms"
+    }
+  ],
+  "steps": [
+    {
+      "step_id": "step_0001",
+      "operation": "wifi.scan",
+      "inputs": {},
+      "outputs": {
+        "ssid": "Guest-WiFi",
+        "bssid": "b2:4e:03",
+        "channel": 1,
+        "signal_strength": -76,
+        "security": "WPA2-PSK",
+        "frequency": "5.0"
+      },
+      "status": "completed",
+      "duration_ms": 0.041961669921875,
+      "timestamp": 1775993581647.222
+    },
+    {
+      "step_id": "step_0002",
+      "operation": "aaa.authenticate",
+      "inputs": {
+        "username": "username",
+        "password": "password"
+      },
+      "outputs": {},
+      "status": "failed",
+      "duration_ms": 0.10919570922851562,
+      "timestamp": 1775993581647.351
+    }
+  ],
+  "metrics": {
+    "ssid": "Guest-WiFi",
+    "bssid": "b2:4e:03",
+    "channel": 1,
+    "signal_strength": -76,
+    "security": "WPA2-PSK",
+    "frequency": "5.0"
+  }
+}

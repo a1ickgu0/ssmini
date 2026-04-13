@@ -1,0 +1,13 @@
+scenario enterprise_wifi_session:
+    worker: employee
+    laptop: managed_laptop
+
+    do serial():
+        connect:
+            parallel():
+                laptop.scan_ssid() with:
+                    signal_strength([-67..-55], at: end)
+
+                laptop.authenticate() with:
+                    auth_status(success, at: end)
+                    auth_latency_ms([200..1500], at: end)
