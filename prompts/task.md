@@ -5,4 +5,4 @@
 [x] 按 CLAUDE.md 和 prompts/top_arch_direcotry.md 约束，实现 prompts/sprint_07_binding.md
 [x] 按 CLAUDE.md 和 prompts/top_arch_direcotry.md 约束，实现 prompts/sprint_08_checker.md
 [x] 按 CLAUDE.md 和 prompts/top_arch_direcotry.md 约束，实现 prompts/sprint_09_mock_backend.md
-[] 按 CLAUDE.md 和 prompts/top_arch_direcotry.md 约束，实现 prompts/sprint_10_e2e.md
+[x] 按 CLAUDE.md 和 prompts/top_arch_direcotry.md 约束，实现 prompts/sprint_10_e2e.md
