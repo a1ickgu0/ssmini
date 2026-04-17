@@ -1,15 +1,113 @@
 scenario enterprise_wifi_session:
     worker: employee
     laptop: managed_laptop
+    network: wifi_network
 
     do serial():
-        connect:
+        # Phase 1: 扫描与连接初始化
+        discovery:
             parallel():
                 laptop.scan_ssid() with:
                     signal_strength([-67..-55], at: end)
+                    ssid_found(true, at: end)
+
+                laptop.scan_channels() with:
+                    channels_found([1..13], at: end)
+                    scan_latency_ms([100..800], at: end)
+
+        # Phase 2: 身份认证与关联
+        authentication:
+            serial():
+                laptop.associate_ap() with:
+                    association_status(success, at: end)
+                    association_latency_ms([50..300], at: end)
 
                 laptop.authenticate() with:
+                    auth_method(eap_peap, at: end)
                     auth_status(success, at: end)
                     auth_latency_ms([200..1500], at: end)
+                    certificate_valid(true, at: end)
 
-                    
+        # Phase 3: 获取网络配置
+        configuration:
+            parallel():
+                laptop.dhcp_discover() with:
+                    dhcp_status(success, at: end)
+                    dhcp_latency_ms([50..500], at: end)
+                    ip_assigned(true, at: end)
+
+                laptop.dns_resolve() with:
+                    dns_status(success, at: end)
+                    dns_latency_ms([10..200], at: end)
+
+        # Phase 4: 企业应用连接
+        enterprise_connect:
+            serial():
+                laptop.connect_vpn() with:
+                    vpn_status(connected, at: end)
+                    vpn_latency_ms([500..3000], at: end)
+
+                laptop.connect_proxy() with:
+                    proxy_status(authenticated, at: end)
+                    proxy_latency_ms([100..500], at: end)
+
+        # Phase 5: 正常工作场景
+        normal_operation:
+            parallel():
+                laptop.access_file_share() with:
+                    share_access_status(success, at: end)
+                    file_transfer_bandwidth_mbps([1..50], at: end)
+                    file_transfer_latency_ms([50..1000], at: end)
+
+                laptop.send_email() with:
+                    email_status(success, at: end)
+                    email_latency_ms([100..2000], at: end)
+
+                laptop.access_intranet() with:
+                    http_status(200, at: end)
+                    page_load_latency_ms([100..5000], at: end)
+
+        # Phase 6: 弱信号恢复（可选）
+        roaming_scenario:
+            serial():
+                laptop.detect_weak_signal() with:
+                    signal_strength([-75..-67], at: end)
+
+                laptop.roam_to_stronger_ap() with:
+                    roam_status(success, at: end)
+                    roam_latency_ms([500..2000], at: end)
+                    packet_loss_percent([0..5], at: end)
+
+                laptop.reconnect_services() with:
+                    service_reconnect_status(success, at: end)
+                    service_latency_ms([200..1000], at: end)
+
+        # Phase 7: 正常断开连接
+        disconnect:
+            serial():
+                laptop.deauthenticate() with:
+                    deauth_status(success, at: end)
+
+                laptop.disassociate_ap() with:
+                    disassoc_status(success, at: end)
+
+    # 覆盖目标定义
+    cover signal_strength_range:
+        target: signal_strength
+        sampling: event
+        min_samples: 10
+
+    cover auth_latency_distribution:
+        target: auth_latency_ms
+        sampling: interval
+        min_samples: 20
+
+    cover bandwidth_utilization:
+        target: file_transfer_bandwidth_mbps
+        sampling: event
+        min_samples: 5
+
+    cover roaming_recovery:
+        target: roam_status
+        sampling: event
+        min_samples: 3

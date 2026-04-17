@@ -3,7 +3,7 @@ AST Node definitions for OSC DSL.
 """
 
 from dataclasses import dataclass, field
-from typing import Optional, Literal, Union
+from typing import Optional, Literal, Union, Tuple
 from enum import Enum
 
 
@@ -19,6 +19,33 @@ class ValueType(str, Enum):
     NUMBER = "number"
     STRING = "string"
     BOOLEAN = "boolean"
+
+
+class DurationUnit(str, Enum):
+    """Duration units for time specifications."""
+    S = "s"
+    MS = "ms"
+    US = "us"
+    M = "m"
+    H = "h"
+
+
+@dataclass(frozen=True)
+class DurationValue:
+    """Represents a duration with unit, e.g., 30s, 100ms."""
+    value: Union[int, float]
+    unit: DurationUnit = DurationUnit.S
+
+    def to_seconds(self) -> float:
+        """Convert duration to seconds."""
+        conversions = {
+            DurationUnit.H: 3600,
+            DurationUnit.M: 60,
+            DurationUnit.S: 1,
+            DurationUnit.MS: 0.001,
+            DurationUnit.US: 0.000001,
+        }
+        return self.value * conversions[self.unit]
 
 
 @dataclass(frozen=True)
@@ -43,11 +70,25 @@ class RangeValue:
 
 
 @dataclass(frozen=True)
+class UntilCondition:
+    """Represents an until condition in a with: block."""
+    event_name: Optional[str] = None  # @event_name
+    elapsed_time: Optional[DurationValue] = None  # elapsed(30s)
+    expression: Optional[str] = None  # condition expression
+
+    def __post_init__(self):
+        if self.event_name is None and self.elapsed_time is None and self.expression is None:
+            raise ValueError("UntilCondition must have at least one condition")
+
+
+@dataclass(frozen=True)
 class ConstraintNode(ASTNode):
     """Represents a constraint in a with: block."""
     metric: str
     value: Optional[Union[str, int, float, RangeValue]] = None
     anchor: AnchorType = AnchorType.END
+    until: Optional[UntilCondition] = None  # until directive
+    constraint_modifier: Optional[Literal["keep", "hard", "default"]] = None
 
     def __post_init__(self):
         if not isinstance(self.metric, str) or not self.metric:
@@ -66,6 +107,7 @@ class ActionNode(ASTNode):
     actor: str
     name: str
     constraints: tuple[ConstraintNode, ...] = field(default_factory=tuple)
+    modifiers: tuple[str, ...] = field(default_factory=tuple)  # modifier applications
 
     def __post_init__(self):
         if not isinstance(self.actor, str) or not self.actor:
@@ -77,25 +119,89 @@ class ActionNode(ASTNode):
         for c in self.constraints:
             if not isinstance(c, ConstraintNode):
                 raise ValueError(f"All constraints must be ConstraintNode, got {type(c)}")
+        if not isinstance(self.modifiers, tuple):
+            object.__setattr__(self, 'modifiers', tuple(self.modifiers))
 
 
 @dataclass(frozen=True)
 class PhaseNode(ASTNode):
-    """Represents a phase with serial or parallel execution."""
-    name: str
-    mode: Literal["serial", "parallel"]
+    """Represents a phase with serial, parallel, or one_of execution."""
+    name: str  # labeled phase name
+    mode: Literal["serial", "parallel", "one_of"]
     children: tuple[ASTNode, ...] = field(default_factory=tuple)
+    duration: Optional[DurationValue] = None  # duration parameter
 
     def __post_init__(self):
         if not isinstance(self.name, str):
             raise ValueError("Phase name must be a string")
-        if self.mode not in ("serial", "parallel"):
-            raise ValueError(f"Phase mode must be 'serial' or 'parallel', got {self.mode}")
+        if self.mode not in ("serial", "parallel", "one_of"):
+            raise ValueError(f"Phase mode must be 'serial', 'parallel', or 'one_of', got {self.mode}")
         if not isinstance(self.children, tuple):
             object.__setattr__(self, 'children', tuple(self.children))
         for child in self.children:
             if not isinstance(child, ASTNode):
                 raise ValueError(f"All children must be ASTNode, got {type(child)}")
+
+
+@dataclass(frozen=True)
+class EventNode(ASTNode):
+    """Represents an event declaration."""
+    name: str
+    condition_type: Literal["elapsed", "rise", "fall", "every", "expression"]
+    condition_value: Optional[Union[DurationValue, str]] = None
+
+    def __post_init__(self):
+        if not isinstance(self.name, str) or not self.name:
+            raise ValueError("Event name must be a non-empty string")
+        if self.condition_type not in ("elapsed", "rise", "fall", "every", "expression"):
+            raise ValueError(f"Event condition_type must be valid, got {self.condition_type}")
+
+
+@dataclass(frozen=True)
+class OnDirectiveNode(ASTNode):
+    """Represents an on @event: directive for event handling."""
+    event_name: str
+    actions: tuple[ASTNode, ...] = field(default_factory=tuple)
+
+    def __post_init__(self):
+        if not isinstance(self.event_name, str) or not self.event_name:
+            raise ValueError("Event name must be a non-empty string")
+        if not isinstance(self.actions, tuple):
+            object.__setattr__(self, 'actions', tuple(self.actions))
+
+
+@dataclass(frozen=True)
+class EmitNode(ASTNode):
+    """Represents an emit directive for event emission."""
+    event_name: str
+
+    def __post_init__(self):
+        if not isinstance(self.event_name, str) or not self.event_name:
+            raise ValueError("Event name must be a non-empty string")
+
+
+@dataclass(frozen=True)
+class WaitNode(ASTNode):
+    """Represents a wait directive for event waiting."""
+    event_name: Optional[str] = None
+    elapsed_time: Optional[DurationValue] = None
+
+    def __post_init__(self):
+        if self.event_name is None and self.elapsed_time is None:
+            raise ValueError("WaitNode must have either event_name or elapsed_time")
+
+
+@dataclass(frozen=True)
+class CallNode(ASTNode):
+    """Represents a call directive for function invocation."""
+    function_name: str
+    arguments: tuple[Union[str, int, float], ...] = field(default_factory=tuple)
+
+    def __post_init__(self):
+        if not isinstance(self.function_name, str) or not self.function_name:
+            raise ValueError("Function name must be a non-empty string")
+        if not isinstance(self.arguments, tuple):
+            object.__setattr__(self, 'arguments', tuple(self.arguments))
 
 
 @dataclass(frozen=True)
@@ -116,6 +222,8 @@ class ScenarioNode(ASTNode):
     """Root node representing a complete scenario."""
     name: str
     actors: tuple[ActorNode, ...] = field(default_factory=tuple)
+    events: tuple[EventNode, ...] = field(default_factory=tuple)  # event declarations
+    on_directives: tuple[OnDirectiveNode, ...] = field(default_factory=tuple)  # on @event handlers
     body: Optional[PhaseNode] = None
     coverages: tuple[CoverageNode, ...] = field(default_factory=tuple)
 
@@ -127,6 +235,16 @@ class ScenarioNode(ASTNode):
         for a in self.actors:
             if not isinstance(a, ActorNode):
                 raise ValueError(f"All actors must be ActorNode, got {type(a)}")
+        if not isinstance(self.events, tuple):
+            object.__setattr__(self, 'events', tuple(self.events))
+        for e in self.events:
+            if not isinstance(e, EventNode):
+                raise ValueError(f"All events must be EventNode, got {type(e)}")
+        if not isinstance(self.on_directives, tuple):
+            object.__setattr__(self, 'on_directives', tuple(self.on_directives))
+        for o in self.on_directives:
+            if not isinstance(o, OnDirectiveNode):
+                raise ValueError(f"All on_directives must be OnDirectiveNode, got {type(o)}")
         if self.body is not None and not isinstance(self.body, PhaseNode):
             raise ValueError(f"Scenario body must be PhaseNode or None, got {type(self.body)}")
         if not isinstance(self.coverages, tuple):
@@ -161,13 +279,18 @@ class CoverageNode(ASTNode):
 def node_to_dict(node: ASTNode) -> dict:
     """Convert AST node to dictionary (for JSON serialization)."""
     if isinstance(node, ScenarioNode):
-        return {
+        result = {
             "type": "Scenario",
             "name": node.name,
             "actors": [node_to_dict(a) for a in node.actors],
             "body": node_to_dict(node.body) if node.body else None,
             "coverages": [node_to_dict(c) for c in node.coverages]
         }
+        if node.events:
+            result["events"] = [node_to_dict(e) for e in node.events]
+        if node.on_directives:
+            result["on_directives"] = [node_to_dict(o) for o in node.on_directives]
+        return result
     elif isinstance(node, ActorNode):
         return {
             "type": "Actor",
@@ -175,19 +298,28 @@ def node_to_dict(node: ASTNode) -> dict:
             "actor_type": node.type
         }
     elif isinstance(node, PhaseNode):
-        return {
+        result = {
             "type": "Phase",
             "name": node.name,
             "mode": node.mode,
             "children": [node_to_dict(c) for c in node.children]
         }
+        if node.duration:
+            result["duration"] = {
+                "value": node.duration.value,
+                "unit": node.duration.unit.value
+            }
+        return result
     elif isinstance(node, ActionNode):
-        return {
+        result = {
             "type": "Action",
             "actor": node.actor,
             "name": node.name,
             "constraints": [node_to_dict(c) for c in node.constraints]
         }
+        if node.modifiers:
+            result["modifiers"] = list(node.modifiers)
+        return result
     elif isinstance(node, ConstraintNode):
         result = {
             "type": "Constraint",
@@ -203,12 +335,61 @@ def node_to_dict(node: ASTNode) -> dict:
             }
         elif node.value is not None:
             result["value"] = node.value
+        if node.until:
+            result["until"] = {
+                "event_name": node.until.event_name,
+                "elapsed_time": node.until.elapsed_time.value if node.until.elapsed_time else None,
+                "expression": node.until.expression
+            }
+        if node.constraint_modifier:
+            result["modifier"] = node.constraint_modifier
         return result
+    elif isinstance(node, EventNode):
+        return {
+            "type": "Event",
+            "name": node.name,
+            "condition_type": node.condition_type,
+            "condition_value": node.condition_value if not isinstance(node.condition_value, DurationValue)
+                              else {"value": node.condition_value.value, "unit": node.condition_value.unit.value}
+        }
+    elif isinstance(node, OnDirectiveNode):
+        return {
+            "type": "OnDirective",
+            "event_name": node.event_name,
+            "actions": [node_to_dict(a) for a in node.actions]
+        }
+    elif isinstance(node, EmitNode):
+        return {
+            "type": "Emit",
+            "event_name": node.event_name
+        }
+    elif isinstance(node, WaitNode):
+        result = {"type": "Wait"}
+        if node.event_name:
+            result["event_name"] = node.event_name
+        if node.elapsed_time:
+            result["elapsed_time"] = {
+                "value": node.elapsed_time.value,
+                "unit": node.elapsed_time.unit.value
+            }
+        return result
+    elif isinstance(node, CallNode):
+        return {
+            "type": "Call",
+            "function_name": node.function_name,
+            "arguments": list(node.arguments)
+        }
     elif isinstance(node, RangeValue):
         return {
             "type": "RangeValue",
             "start": node.start,
             "end": node.end
+        }
+    elif isinstance(node, DurationValue):
+        return {
+            "type": "DurationValue",
+            "value": node.value,
+            "unit": node.unit.value
         }
     elif isinstance(node, CoverageNode):
         result = {
@@ -232,6 +413,14 @@ def print_ast(node: ASTNode, indent: int = 0) -> str:
         lines.append(f"{prefix}  Actors:")
         for a in node.actors:
             lines.append(f"{prefix}    - {a.name}: {a.type}")
+        if node.events:
+            lines.append(f"{prefix}  Events:")
+            for e in node.events:
+                lines.append(print_ast(e, indent + 2))
+        if node.on_directives:
+            lines.append(f"{prefix}  On Directives:")
+            for o in node.on_directives:
+                lines.append(print_ast(o, indent + 2))
         if node.coverages:
             lines.append(f"{prefix}  Coverages:")
             for c in node.coverages:
@@ -243,7 +432,10 @@ def print_ast(node: ASTNode, indent: int = 0) -> str:
     elif isinstance(node, ActorNode):
         return f"{prefix}Actor: {node.name} ({node.type})"
     elif isinstance(node, PhaseNode):
-        lines = [f"{prefix}Phase: {node.name} [{node.mode}]"]
+        duration_str = ""
+        if node.duration:
+            duration_str = f" duration={node.duration.value}{node.duration.unit.value}"
+        lines = [f"{prefix}Phase: {node.name} [{node.mode}]{duration_str}"]
         for child in node.children:
             lines.append(print_ast(child, indent + 2))
         return "\n".join(lines)
@@ -251,14 +443,49 @@ def print_ast(node: ASTNode, indent: int = 0) -> str:
         lines = [f"{prefix}Action: {node.actor}.{node.name}()"]
         for c in node.constraints:
             lines.append(print_ast(c, indent + 2))
+        if node.modifiers:
+            lines.append(f"{prefix}  Modifiers: {', '.join(node.modifiers)}")
         return "\n".join(lines)
     elif isinstance(node, ConstraintNode):
         value_str = node.value
         if isinstance(node.value, RangeValue):
             value_str = f"[{node.value.start}..{node.value.end}]"
-        return f"{prefix}Constraint: {node.metric} = {value_str} @ {node.anchor.value if hasattr(node.anchor, 'value') else node.anchor}"
+        until_str = ""
+        if node.until:
+            if node.until.event_name:
+                until_str = f" until @{node.until.event_name}"
+            elif node.until.elapsed_time:
+                until_str = f" until elapsed({node.until.elapsed_time.value}{node.until.elapsed_time.unit.value})"
+        modifier_str = f" [{node.constraint_modifier}]" if node.constraint_modifier else ""
+        return f"{prefix}Constraint{modifier_str}: {node.metric} = {value_str} @ {node.anchor.value if hasattr(node.anchor, 'value') else node.anchor}{until_str}"
+    elif isinstance(node, EventNode):
+        cond_str = ""
+        if node.condition_value:
+            if isinstance(node.condition_value, DurationValue):
+                cond_str = f"({node.condition_value.value}{node.condition_value.unit.value})"
+            else:
+                cond_str = f"({node.condition_value})"
+        return f"{prefix}Event: {node.name} is {node.condition_type}{cond_str}"
+    elif isinstance(node, OnDirectiveNode):
+        lines = [f"{prefix}On @{node.event_name}:"]
+        for a in node.actions:
+            lines.append(print_ast(a, indent + 2))
+        return "\n".join(lines)
+    elif isinstance(node, EmitNode):
+        return f"{prefix}Emit: @{node.event_name}"
+    elif isinstance(node, WaitNode):
+        if node.event_name:
+            return f"{prefix}Wait: @{node.event_name}"
+        elif node.elapsed_time:
+            return f"{prefix}Wait: elapsed({node.elapsed_time.value}{node.elapsed_time.unit.value})"
+        return f"{prefix}Wait: (unknown)"
+    elif isinstance(node, CallNode):
+        args_str = ", ".join(str(a) for a in node.arguments)
+        return f"{prefix}Call: {node.function_name}({args_str})"
     elif isinstance(node, RangeValue):
         return f"{prefix}Range: [{node.start}..{node.end}]"
+    elif isinstance(node, DurationValue):
+        return f"{prefix}Duration: {node.value}{node.unit.value}"
     elif isinstance(node, CoverageNode):
         result = f"{prefix}Coverage: {node.name} = {node.target} (sampling={node.sampling}, min={node.min_samples}"
         if node.max_samples is not None:

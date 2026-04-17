@@ -141,29 +141,60 @@ def run_e2e_pipeline(
         )
         constraint_specs.append(constraint_spec)
 
-    # Get actual metrics from execution trace
-    actual_metrics = {}
+    # Get actual metrics from execution trace - collect ALL values per metric
+    # This handles cases where the same metric is produced by multiple operations
+    all_metrics = {}  # metric_name -> list of values
     for step in execution_trace.steps:
-        actual_metrics.update(step.outputs)
+        for metric_name, value in step.outputs.items():
+            if metric_name not in all_metrics:
+                all_metrics[metric_name] = []
+            all_metrics[metric_name].append(value)
 
     # Check each constraint against actual metrics
     for constraint in constraint_specs:
-        actual_value = actual_metrics.get(constraint.metric)
+        metric_values = all_metrics.get(constraint.metric, [])
 
-        validation_result = ConstraintValidator.validate_value(actual_value, constraint)
+        if len(metric_values) == 0:
+            # No value found for this metric
+            validation_result = ConstraintValidator.validate_value(None, constraint)
+            if not validation_result.passed:
+                all_passed = False
+                issue = ValidationIssue(
+                    metric=constraint.metric,
+                    expected=str(constraint.value),
+                    actual="None",
+                    severity="error",
+                    description=f"Constraint failed: {validation_result.reason}"
+                )
+                result_tracker.add_violation(issue)
+            elif verbose:
+                print(f"    [OK] {constraint.metric}: {validation_result.reason}")
+        else:
+            # Check if ANY of the values satisfy the constraint
+            any_passed = False
+            passed_reason = ""
+            for actual_value in metric_values:
+                validation_result = ConstraintValidator.validate_value(actual_value, constraint)
+                if validation_result.passed:
+                    any_passed = True
+                    passed_reason = validation_result.reason
+                    break
 
-        if not validation_result.passed:
-            all_passed = False
-            issue = ValidationIssue(
-                metric=constraint.metric,
-                expected=str(constraint.value),
-                actual=str(actual_value),
-                severity="error",
-                description=f"Constraint failed: {validation_result.reason}"
-            )
-            result_tracker.add_violation(issue)
-        elif verbose:
-            print(f"    [OK] {constraint.metric}: {validation_result.reason}")
+            if not any_passed:
+                all_passed = False
+                # Report with the last value that failed
+                actual_value = metric_values[-1]
+                validation_result = ConstraintValidator.validate_value(actual_value, constraint)
+                issue = ValidationIssue(
+                    metric=constraint.metric,
+                    expected=str(constraint.value),
+                    actual=str(actual_value),
+                    severity="error",
+                    description=f"Constraint failed: {validation_result.reason}"
+                )
+                result_tracker.add_violation(issue)
+            elif verbose:
+                print(f"    [OK] {constraint.metric}: {passed_reason}")
 
     # Set overall status
     if all_passed and len(execution_trace.steps) > 0:
@@ -174,6 +205,8 @@ def run_e2e_pipeline(
         status = "fail"
 
     # Build final report
+    # Flatten metrics for report (take last value for each metric)
+    actual_metrics = {k: v[-1] if v else None for k, v in all_metrics.items()}
     report = {
         "scenario_name": semantic_ir.name,
         "status": status,

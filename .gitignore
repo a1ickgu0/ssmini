@@ -12,3 +12,12 @@ __pycache__/
 dist/
 build/
 *.egg-info/
+
+# Test outputs - generated files (do not commit)
+examples/output/
+compiler/lowering/*.json
+compiler/ir/*.json
+
+# Generated IR files
+compiler/ir/semantic_ir.json
+compiler/ir/constraint_ir.json

@@ -95,31 +95,55 @@ class ConstraintValidator:
             )
 
     @staticmethod
+    def _normalize_value(value: Union[int, float, str, bool, None]) -> Union[int, float, str, bool, None]:
+        """Normalize a value for comparison."""
+        if value is None:
+            return None
+        # Handle string representations of booleans and numbers
+        if isinstance(value, str):
+            if value.lower() == "true":
+                return True
+            elif value.lower() == "false":
+                return False
+            # Try to parse as number
+            try:
+                if "." in value:
+                    return float(value)
+                return int(value)
+            except ValueError:
+                return value
+        return value
+
+    @staticmethod
     def _validate_equality(
         metric: str,
-        actual_value: Union[int, float, str],
+        actual_value: Union[int, float, str, bool],
         constraint: ConstraintSpec
     ) -> ValidationResult:
         """Validate equality constraint."""
         expected = constraint.value
 
+        # Normalize both values for comparison
+        actual_normalized = ConstraintValidator._normalize_value(actual_value)
+        expected_normalized = ConstraintValidator._normalize_value(expected)
+
         if constraint.operator == ComparisonOperator.EQUALS:
-            passed = actual_value == expected
+            passed = actual_normalized == expected_normalized
             reason = f"Equality check: {actual_value} == {expected}"
         elif constraint.operator == ComparisonOperator.NOT_EQUALS:
-            passed = actual_value != expected
+            passed = actual_normalized != expected_normalized
             reason = f"Inequality check: {actual_value} != {expected}"
         elif constraint.operator == ComparisonOperator.LESS_THAN:
-            passed = actual_value < expected
+            passed = actual_normalized < expected_normalized
             reason = f"Comparison: {actual_value} < {expected}"
         elif constraint.operator == ComparisonOperator.LESS_THAN_EQ:
-            passed = actual_value <= expected
+            passed = actual_normalized <= expected_normalized
             reason = f"Comparison: {actual_value} <= {expected}"
         elif constraint.operator == ComparisonOperator.GREATER_THAN:
-            passed = actual_value > expected
+            passed = actual_normalized > expected_normalized
             reason = f"Comparison: {actual_value} > {expected}"
         elif constraint.operator == ComparisonOperator.GREATER_THAN_EQ:
-            passed = actual_value >= expected
+            passed = actual_normalized >= expected_normalized
             reason = f"Comparison: {actual_value} >= {expected}"
         else:
             return ValidationResult(

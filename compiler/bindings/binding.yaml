@@ -7,16 +7,97 @@
 #   inputs: [<param1>, <param2>]
 #   outputs: [<metric1>, <metric2>]
 
+# WiFi scanning and discovery
 laptop.scan_ssid:
   backend: wifi.scan
   inputs: []
-  outputs: [signal_strength, ssid, channel]
+  outputs: [signal_strength, ssid, channel, security, frequency]
 
+laptop.scan_channels:
+  backend: wifi.scan_channels
+  inputs: []
+  outputs: [channels_found, scan_latency_ms]
+
+# WiFi association
+laptop.associate_ap:
+  backend: wifi.associate
+  inputs: [ssid]
+  outputs: [association_status, association_latency_ms, signal_strength]
+
+# Authentication
 laptop.authenticate:
   backend: aaa.authenticate
   inputs: [username, password]
-  outputs: [auth_status, auth_latency_ms]
+  outputs: [auth_status, auth_latency_ms, auth_method, certificate_valid]
 
+# DHCP
+laptop.dhcp_discover:
+  backend: dhcp.discover
+  inputs: []
+  outputs: [dhcp_status, dhcp_latency_ms, ip_assigned, ip_address]
+
+# DNS
+laptop.dns_resolve:
+  backend: dns.resolve
+  inputs: []
+  outputs: [dns_status, dns_latency_ms, resolved_addresses]
+
+# VPN
+laptop.connect_vpn:
+  backend: vpn.connect
+  inputs: [vpn_server]
+  outputs: [vpn_status, vpn_latency_ms, vpn_server]
+
+# Proxy
+laptop.connect_proxy:
+  backend: proxy.connect
+  inputs: [proxy_server]
+  outputs: [proxy_status, proxy_latency_ms]
+
+# Enterprise services
+laptop.access_file_share:
+  backend: file.share_access
+  inputs: [share_name]
+  outputs: [share_access_status, file_transfer_bandwidth_mbps, file_transfer_latency_ms]
+
+laptop.send_email:
+  backend: email.send
+  inputs: []
+  outputs: [email_status, email_latency_ms]
+
+laptop.access_intranet:
+  backend: http.access
+  inputs: [url]
+  outputs: [http_status, page_load_latency_ms]
+
+# Roaming
+laptop.detect_weak_signal:
+  backend: wifi.detect_signal
+  inputs: []
+  outputs: [signal_strength]
+
+laptop.roam_to_stronger_ap:
+  backend: wifi.roam
+  inputs: []
+  outputs: [roam_status, roam_latency_ms, packet_loss_percent]
+
+laptop.reconnect_services:
+  backend: service.reconnect
+  inputs: []
+  outputs: [service_reconnect_status, service_latency_ms]
+
+# Disconnection
+laptop.deauthenticate:
+  backend: aaa.deauthenticate
+  inputs: []
+  outputs: [deauth_status]
+
+laptop.disassociate_ap:
+  backend: wifi.disassociate
+  inputs: []
+  outputs: [disassoc_status]
+
+# Worker actions
 worker.login:
   backend: aaa.login
   inputs: [credential]
@@ -27,11 +108,13 @@ worker.generate_traffic:
   inputs: [duration, volume]
   outputs: [bytes_transferred, packet_count]
 
+# Router actions
 router.configure:
   backend: network.configure
   inputs: [config]
   outputs: [config_status, change_id]
 
+# Access point actions
 access_point.deploy:
   backend: network.deploy_ap
   inputs: [ssid, security]
