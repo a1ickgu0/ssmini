@@ -1,0 +1,113 @@
+scenario gateway_sdwan_cross_border_msp:
+    gateway_management: msp_decision_maker
+    gateway_engineer: sdwan_network_engineer
+    gateway_noc: noc_operator
+    customer_it: enterprise_it_lead
+    branch_cpe: sdwan_branch_cpe
+    branch_user: remote_business_user
+    carrier_cloud: underlay_provider
+
+    do serial():
+        # Stakeholders: Gateway management, Gateway engineer, Gateway NOC,
+        # customer IT, branch users, and carrier/cloud providers.
+        # ConOps: create a customer tenant, onboard a NAT branch, build an
+        # IPSec/GRE overlay, steer cross-border traffic by policy/SLA, then
+        # recover and explain service behavior from the NOC view.
+        service_preparation:
+            parallel():
+                gateway_engineer.create_customer_tenant() with:
+                    tenant_status(created, at: end)
+                    tenant_isolation_passed(true, at: end)
+
+                gateway_engineer.configure_overlay_policy() with:
+                    policy_status(active, at: end)
+                    policy_path_visible(true, at: end)
+
+        branch_onboarding:
+            serial():
+                branch_cpe.register_to_gateway() with:
+                    branch_registration_status(success, at: end)
+                    nat_traversal_status(success, at: end)
+                    public_ip_required(false, at: end)
+                    onboarding_minutes([5..30], at: end)
+
+                branch_cpe.establish_overlay_tunnel() with:
+                    tunnel_status(established, at: end)
+                    tunnel_setup_latency_ms([300..1500], at: end)
+                    overlay_encryption_enabled(true, at: end)
+
+                branch_cpe.advertise_branch_routes() with:
+                    route_import_status(success, at: end)
+                    route_convergence_ms([500..2000], at: end)
+                    route_leak_detected(false, at: end)
+
+        cross_border_operation:
+            parallel():
+                branch_cpe.select_sla_path() with:
+                    path_selection_status(correct, at: end)
+                    path_correctness_percent([95..100], at: end)
+                    latency_ms([60..180], at: end)
+                    jitter_ms([2..25], at: end)
+                    packet_loss_percent([0..2], at: end)
+
+                branch_user.access_cross_border_app() with:
+                    app_access_status(success, at: end)
+                    transaction_latency_ms([80..300], at: end)
+                    business_availability_percent([99..100], at: end)
+                    throughput_mbps([20..120], at: end)
+
+                gateway_noc.monitor_customer_service() with:
+                    topology_visible(true, at: end)
+                    tunnel_visible(true, at: end)
+                    alert_status(healthy, at: end)
+                    log_correlation_status(complete, at: end)
+                    mttd_seconds([10..60], at: end)
+
+        failure_recovery:
+            serial():
+                carrier_cloud.degrade_primary_link() with:
+                    primary_link_status(degraded, at: end)
+                    sla_probe_status(violation_detected, at: end)
+                    alert_status(triggered, at: end)
+
+                branch_cpe.failover_overlay_path() with:
+                    failover_status(success, at: end)
+                    failover_time_ms([500..3000], at: end)
+                    packet_loss_percent([0..3], at: end)
+
+                gateway_noc.close_incident() with:
+                    incident_closed(true, at: end)
+                    mttr_minutes([5..30], at: end)
+                    service_report_generated(true, at: end)
+                    root_cause_visible(true, at: end)
+
+    # MoE coverage goals derived from SDWAN_Case.md:
+    # - cross-border business availability
+    # - low-friction branch onboarding
+    # - SLA/application-aware path selection
+    # - centralized NOC observability
+    # - high availability and explainable recovery
+    cover cross_border_business_availability:
+        target: business_availability_percent
+        sampling: event
+        min_samples: 5
+
+    cover branch_low_touch_onboarding:
+        target: onboarding_minutes
+        sampling: event
+        min_samples: 5
+
+    cover sla_path_selection_effectiveness:
+        target: path_correctness_percent
+        sampling: event
+        min_samples: 10
+
+    cover noc_operations_efficiency:
+        target: mttr_minutes
+        sampling: event
+        min_samples: 5
+
+    cover recovery_explainability:
+        target: root_cause_visible
+        sampling: event
+        min_samples: 3

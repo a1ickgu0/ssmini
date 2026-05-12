@@ -103,6 +103,17 @@ class MockBackend:
             "network.configure": self._configure_router,
             "network.deploy_ap": self._deploy_ap,
             "traffic.generate": self._generate_traffic,
+            "sdwan.create_tenant": self._sdwan_create_tenant,
+            "sdwan.configure_overlay_policy": self._sdwan_configure_overlay_policy,
+            "sdwan.register_branch": self._sdwan_register_branch,
+            "sdwan.establish_tunnel": self._sdwan_establish_tunnel,
+            "sdwan.advertise_routes": self._sdwan_advertise_routes,
+            "sdwan.select_sla_path": self._sdwan_select_sla_path,
+            "sdwan.access_cross_border_app": self._sdwan_access_cross_border_app,
+            "sdwan.monitor_service": self._sdwan_monitor_service,
+            "sdwan.degrade_primary_link": self._sdwan_degrade_primary_link,
+            "sdwan.failover_path": self._sdwan_failover_path,
+            "sdwan.close_incident": self._sdwan_close_incident,
         }
 
     def execute(self, operation: str, **kwargs) -> OperationResult:
@@ -229,6 +240,99 @@ class MockBackend:
             "applied": True,
             "configuration": config,
             "config_latency_ms": random.randint(100, 500)
+        }
+
+    def _sdwan_create_tenant(self, **kwargs) -> dict:
+        """Simulate creating an isolated customer tenant."""
+        return {
+            "tenant_status": "created",
+            "tenant_isolation_passed": True,
+        }
+
+    def _sdwan_configure_overlay_policy(self, **kwargs) -> dict:
+        """Simulate configuring explainable SD-WAN overlay policy."""
+        return {
+            "policy_status": "active",
+            "policy_path_visible": True,
+        }
+
+    def _sdwan_register_branch(self, **kwargs) -> dict:
+        """Simulate low-touch branch registration through NAT."""
+        return {
+            "branch_registration_status": "success",
+            "nat_traversal_status": "success",
+            "public_ip_required": False,
+            "onboarding_minutes": random.randint(5, 30),
+        }
+
+    def _sdwan_establish_tunnel(self, **kwargs) -> dict:
+        """Simulate establishing a secure overlay tunnel."""
+        return {
+            "tunnel_status": "established",
+            "tunnel_setup_latency_ms": random.randint(300, 1500),
+            "overlay_encryption_enabled": True,
+        }
+
+    def _sdwan_advertise_routes(self, **kwargs) -> dict:
+        """Simulate importing branch routes into the overlay."""
+        return {
+            "route_import_status": "success",
+            "route_convergence_ms": random.randint(500, 2000),
+            "route_leak_detected": False,
+        }
+
+    def _sdwan_select_sla_path(self, **kwargs) -> dict:
+        """Simulate SLA-based cross-border path selection."""
+        return {
+            "path_selection_status": "correct",
+            "path_correctness_percent": random.randint(95, 100),
+            "latency_ms": random.randint(60, 180),
+            "jitter_ms": random.randint(2, 25),
+            "packet_loss_percent": random.randint(0, 2),
+        }
+
+    def _sdwan_access_cross_border_app(self, **kwargs) -> dict:
+        """Simulate branch user access to a cross-border business app."""
+        return {
+            "app_access_status": "success",
+            "transaction_latency_ms": random.randint(80, 300),
+            "business_availability_percent": round(random.uniform(99.0, 100.0), 2),
+            "throughput_mbps": random.randint(20, 120),
+        }
+
+    def _sdwan_monitor_service(self, **kwargs) -> dict:
+        """Simulate customer-level NOC observability."""
+        return {
+            "topology_visible": True,
+            "tunnel_visible": True,
+            "alert_status": "healthy",
+            "log_correlation_status": "complete",
+            "mttd_seconds": random.randint(10, 60),
+        }
+
+    def _sdwan_degrade_primary_link(self, **kwargs) -> dict:
+        """Simulate an underlay SLA violation detected by probes."""
+        return {
+            "primary_link_status": "degraded",
+            "sla_probe_status": "violation_detected",
+            "alert_status": "triggered",
+        }
+
+    def _sdwan_failover_path(self, **kwargs) -> dict:
+        """Simulate overlay failover to a healthy path."""
+        return {
+            "failover_status": "success",
+            "failover_time_ms": random.randint(500, 3000),
+            "packet_loss_percent": random.randint(0, 3),
+        }
+
+    def _sdwan_close_incident(self, **kwargs) -> dict:
+        """Simulate closing a NOC incident with an explainable report."""
+        return {
+            "incident_closed": True,
+            "mttr_minutes": random.randint(5, 30),
+            "service_report_generated": True,
+            "root_cause_visible": True,
         }
 
     def _deploy_ap(self, ssid: str, security: str = "WPA2-ENT", **kwargs) -> dict:

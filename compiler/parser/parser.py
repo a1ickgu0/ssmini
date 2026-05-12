@@ -846,6 +846,9 @@ class Parser:
                 # Check if it's an action (actor.action) - stop
                 if self.peek_next() and self.peek_next().type == TokenType.DOT:
                     break
+                # Stop when the next phase label begins (e.g. "next_phase:")
+                if self.peek_next() and self.peek_next().type == TokenType.COLON:
+                    break
                 # Check if it's a constraint modifier consumed as metric
                 if self.peek().value in ("hard", "default"):
                     # Skip modifiers without keep

@@ -119,3 +119,59 @@ access_point.deploy:
   backend: network.deploy_ap
   inputs: [ssid, security]
   outputs: [ap_id, radios]
+
+# Gateway SD-WAN cross-border MSP scenario
+gateway_engineer.create_customer_tenant:
+  backend: sdwan.create_tenant
+  inputs: []
+  outputs: [tenant_status, tenant_isolation_passed]
+
+gateway_engineer.configure_overlay_policy:
+  backend: sdwan.configure_overlay_policy
+  inputs: []
+  outputs: [policy_status, policy_path_visible]
+
+branch_cpe.register_to_gateway:
+  backend: sdwan.register_branch
+  inputs: []
+  outputs: [branch_registration_status, nat_traversal_status, public_ip_required, onboarding_minutes]
+
+branch_cpe.establish_overlay_tunnel:
+  backend: sdwan.establish_tunnel
+  inputs: []
+  outputs: [tunnel_status, tunnel_setup_latency_ms, overlay_encryption_enabled]
+
+branch_cpe.advertise_branch_routes:
+  backend: sdwan.advertise_routes
+  inputs: []
+  outputs: [route_import_status, route_convergence_ms, route_leak_detected]
+
+branch_cpe.select_sla_path:
+  backend: sdwan.select_sla_path
+  inputs: []
+  outputs: [path_selection_status, path_correctness_percent, latency_ms, jitter_ms, packet_loss_percent]
+
+branch_user.access_cross_border_app:
+  backend: sdwan.access_cross_border_app
+  inputs: []
+  outputs: [app_access_status, transaction_latency_ms, business_availability_percent, throughput_mbps]
+
+gateway_noc.monitor_customer_service:
+  backend: sdwan.monitor_service
+  inputs: []
+  outputs: [topology_visible, tunnel_visible, alert_status, log_correlation_status, mttd_seconds]
+
+carrier_cloud.degrade_primary_link:
+  backend: sdwan.degrade_primary_link
+  inputs: []
+  outputs: [primary_link_status, sla_probe_status, alert_status]
+
+branch_cpe.failover_overlay_path:
+  backend: sdwan.failover_path
+  inputs: []
+  outputs: [failover_status, failover_time_ms, packet_loss_percent]
+
+gateway_noc.close_incident:
+  backend: sdwan.close_incident
+  inputs: []
+  outputs: [incident_closed, mttr_minutes, service_report_generated, root_cause_visible]
